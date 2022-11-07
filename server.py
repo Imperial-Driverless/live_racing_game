@@ -27,7 +27,7 @@ Speed  = NewType('Speed', float)
 TeamToken = NewType('TeamToken', int)
 TeamId = NewType('TeamId', int)
 
-tokens: List[TeamToken] = list(map(TeamToken, [145,281,392,417,565,684,777,892]))
+tokens: List[TeamToken] = list(map(TeamToken, [145]))#,281,392,417,565,684,777,892]))
 
 teams: Dict[TeamToken, TeamId] = {t: TeamId(i) for i, t in enumerate(tokens)}
 
@@ -119,7 +119,7 @@ class TeamAgent:
 
 
 async def reset_team_cmds(num_teams):
-    await asyncio.wait([cache.set(i, Command(speed=0, steer=0)) for i in range(num_teams)])
+    await asyncio.wait([cache.set(i, Command(speed=0.1, steer=0)) for i in range(num_teams)])
 
 async def set_team_observations(obs, num_teams):
     await asyncio.wait([cache.set(f'obs{i}', Observation.extract(obs, TeamId(i))) for i in range(num_teams)] + [cache.set('obs', obs)])
@@ -131,6 +131,7 @@ async def set_team_observations(obs, num_teams):
 
 async def main():
     num_teams = len(teams)
+    print(f'{num_teams=}')
 
     parser = argparse.ArgumentParser(description='Live racing game server')
     parser.add_argument('host', type=str)
@@ -156,7 +157,7 @@ async def main():
         try:
             await reset_team_cmds(num_teams)
 
-            obs, step_reward, done, info = env.reset()
+            obs, step_reward, done, info = env.reset(starting_positions)
 
             laptime = 0.0
             start = time.time()
@@ -167,7 +168,7 @@ async def main():
                 cmds_arr = [[c.steer, c.speed] for c in cmds]
 
                 now = time.time()
-                obs, step_reward, done, info = env.step(np.array(cmds_arr), time_step=now - last_step) # type: ignore - introducing time_step abuses the api
+                obs, step_reward, done, info = env.step(np.array(cmds_arr), now - last_step) # type: ignore - introducing time_step abuses the api
                 last_step = now
 
                 f.seek(0)

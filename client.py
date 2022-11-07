@@ -41,7 +41,7 @@ def send_command(speed, steer):
     requests.post(f'{SERVER_URL}/', data=json.dumps(data))
 
 
-speed = 4
+speed = 3
 steer_amplitude = 0.2
 while True:
     o = get_observation()

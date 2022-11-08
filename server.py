@@ -16,7 +16,7 @@ import numpy as np
 import gym
 import json
 import pickle
-
+from pathlib import Path
 
 
 app = FastAPI()
@@ -27,7 +27,7 @@ Speed  = NewType('Speed', float)
 TeamToken = NewType('TeamToken', int)
 TeamId = NewType('TeamId', int)
 
-tokens: List[TeamToken] = list(map(TeamToken, [145]))#,281,392,417,565,684,777,892]))
+tokens: List[TeamToken] = [TeamToken(int(t)) for t in Path('team_tokens.txt').read_text().split()]
 
 teams: Dict[TeamToken, TeamId] = {t: TeamId(i) for i, t in enumerate(tokens)}
 

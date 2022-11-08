@@ -94,17 +94,18 @@ class EnvRenderer(pyglet.window.Window):
 
         # current score label
         self.score_label = pyglet.text.Label(
-                'Lap Time: {laptime:.2f}, Ego Lap Count: {count:.0f}'.format(
+                ''.format(
                     laptime=0.0, count=0.0),
                 font_size=36,
-                x=0,
-                y=-800,
+                x=-1200,
+                y=600,
                 anchor_x='center',
                 anchor_y='center',
-                # width=0.01,
-                # height=0.01,
+                width=1000,
+                height=0.01,
                 color=(255, 255, 255, 255),
-                batch=self.batch)
+                batch=self.batch,
+                multiline=True)
 
         self.fps_display = pyglet.window.FPSDisplay(self)
 

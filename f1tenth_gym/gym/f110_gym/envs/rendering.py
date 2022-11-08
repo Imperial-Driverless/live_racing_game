@@ -329,5 +329,5 @@ class EnvRenderer(pyglet.window.Window):
             self.cars[j].vertices = vertices
         self.poses = poses
 
-        lap_countrs_str = '\n'.join(f"Team {i}: {v}" for i, v in enumerate(obs['lap_counts']))
+        lap_countrs_str = '\n'.join(f"Team {i}{' (us!)' if i == obs['ego_idx'] else ''}: {int(v)}" for i, v in enumerate(obs['lap_counts']))
         self.score_label.text = f'Team number: {obs["ego_idx"]}.\nLap Counts:  \n{lap_countrs_str}'

@@ -47,6 +47,8 @@ ZOOM_OUT_FACTOR = 1/ZOOM_IN_FACTOR
 CAR_LENGTH = 0.58*1.7
 CAR_WIDTH = 0.31*1.7
 
+COLORS = [[255, 0, 0], [0, 255, 0], [50, 50, 255], [255, 255, 0], [255, 0, 255], [0, 255, 255], [183, 193, 222], [172, 97, 185]]
+
 class EnvRenderer(pyglet.window.Window):
     """
     A window class inherited from pyglet.window.Window, handles the camera/projection interaction, resizing window, and rendering the environment
@@ -69,7 +71,7 @@ class EnvRenderer(pyglet.window.Window):
         super().__init__(width, height, config=conf, resizable=True, vsync=False, *args, **kwargs)
 
         # gl init
-        glClearColor(9/255, 32/255, 87/255, 1.)
+        glClearColor(42/255, 42/255, 42/255, 1.)
 
         # initialize camera values
         self.left = -width/2
@@ -93,19 +95,19 @@ class EnvRenderer(pyglet.window.Window):
         self.vertices = None
 
         # current score label
-        self.score_label = pyglet.text.Label(
+        self.score_labels = [pyglet.text.Label(
                 ''.format(
                     laptime=0.0, count=0.0),
                 font_size=36,
                 x=-1200,
-                y=600,
+                y=80 * i,
                 anchor_x='center',
                 anchor_y='center',
                 width=1000,
                 height=0.01,
                 color=(255, 255, 255, 255),
                 batch=self.batch,
-                multiline=True)
+                multiline=True) for i in range(8, 0, -1)]
 
         self.fps_display = pyglet.window.FPSDisplay(self)
 
@@ -316,10 +318,9 @@ class EnvRenderer(pyglet.window.Window):
         if self.poses is None:
             self.cars = []
             for i in range(num_agents):
-                color = [172, 97, 185] if i == self.ego_idx else [183, 193, 222]
                 vertices_np = get_vertices(np.array([0., 0., 0.]), CAR_LENGTH, CAR_WIDTH)
                 vertices = list(vertices_np.flatten())
-                car = self.batch.add(4, GL_QUADS, None, ('v2f', vertices), ('c3B', 4 * color))
+                car = self.batch.add(4, GL_QUADS, None, ('v2f', vertices), ('c3B', 4 * COLORS[i]))
                 self.cars.append(car)
 
         poses = np.stack((poses_x, poses_y, poses_theta)).T
@@ -329,5 +330,7 @@ class EnvRenderer(pyglet.window.Window):
             self.cars[j].vertices = vertices
         self.poses = poses
 
-        lap_countrs_str = '\n'.join(f"Team {i}{' (us!)' if i == obs['ego_idx'] else ''}: {int(v)}" for i, v in enumerate(obs['lap_counts']))
-        self.score_label.text = f'Team number: {obs["ego_idx"]}.\nLap Counts:  \n{lap_countrs_str}'
+        for i in range(num_agents):
+            self.score_labels[i].color = (*COLORS[i], 255)
+            self.score_labels[i].text = f'Team: {i} {" (us!)" if i == self.ego_idx else ""}: {int(obs["lap_counts"][i])}'
+

@@ -57,7 +57,7 @@ async def read_root() -> Response:
 async def update_cmd(data: PostPayload):
     try:
         data.cmd.speed = max(0.01, min(0.7, data.cmd.speed))
-        data.cmd.steer = max(-0.3, min(0.3, data.cmd.speed))
+        data.cmd.steer = max(-0.3, min(0.3, data.cmd.steer))
         await cache.set(teams[data.team_token], data.cmd)
     except KeyError:
         return Response('invalid team token', status_code=403)

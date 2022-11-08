@@ -39,47 +39,19 @@ class PostPayload(BaseModel):
     cmd: Command
     team_token: TeamToken
 
-class Observation(BaseModel):
-    scan: List[float]
-    pose_x: float
-    pose_y: float
-    pose_theta: float
-    linear_vel_x: float
-    linear_vel_y: float
-    ang_vel_z: float
-
-    @classmethod
-    def extract(cls, obs, team_id: TeamId) -> Observation:
-        return Observation(
-            scan=obs['scans'][team_id].tolist(),
-            pose_x=obs['poses_x'][team_id],
-            pose_y=obs['poses_y'][team_id],
-            pose_theta=obs['poses_theta'][team_id],
-            linear_vel_x=obs['linear_vels_x'][team_id],
-            linear_vel_y=obs['linear_vels_y'][team_id],
-            ang_vel_z=obs['ang_vels_z'][team_id])
 
 
-
-
-
-@app.get("/")
-async def read_root(team_token: TeamToken) -> Observation | Response:
+@app.get('/team_id')
+async def get_team_id(team_token: TeamToken):
     try:
-        return await cache.get(f'obs{teams[team_token]}') # type: ignore
+        return teams[team_token]
     except KeyError:
         return Response('invalid team token', status_code=403)
 
-@app.get("/all")
-async def get_all() -> Response:
-
-    o: Dict[str, Any] = await cache.get('obs') # type: ignore
-    try:
-        del o['scans']
-    except:
-        pass
-    os = pickle.dumps(o)
-    return Response(content=os)
+@app.get("/")
+async def read_root() -> Response:
+    o = await cache.get('obs') # type: ignore
+    return Response(content=o)
 
 @app.post("/")
 async def update_cmd(data: PostPayload):
@@ -120,9 +92,6 @@ class TeamAgent:
 
 async def reset_team_cmds(num_teams):
     await asyncio.wait([cache.set(i, Command(speed=0.1, steer=0)) for i in range(num_teams)])
-
-async def set_team_observations(obs, num_teams):
-    await asyncio.wait([cache.set(f'obs{i}', Observation.extract(obs, TeamId(i))) for i in range(num_teams)] + [cache.set('obs', obs)])
 
 
 
@@ -175,7 +144,7 @@ async def main():
                 json.dump(obs['lap_counts'].tolist(), f)
                 f.truncate()
                 
-                await set_team_observations(obs, num_teams)
+                await cache.set('obs', pickle.dumps(obs)) # type: ignore
 
                 laptime += step_reward
                 # env.render()

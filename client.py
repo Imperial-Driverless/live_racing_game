@@ -1,8 +1,14 @@
 import json
+import pickle
 import time
 import argparse
+from typing import Any, List, Tuple
 
 import requests
+from f110_gym.envs.rendering import EnvRenderer
+
+
+
 
 parser = argparse.ArgumentParser(description='Live racing game visualizer')
 parser.add_argument('token', type=int)
@@ -13,24 +19,17 @@ args = parser.parse_args()
 
 SERVER_URL = f'http://{args.host}:{args.port}'
 TEAM_TOKEN = args.token
+WINDOW_W = 1000
+WINDOW_H = 800
+renderer = EnvRenderer(WINDOW_W, WINDOW_H)
+renderer.update_map('example_map', '.png')
 
 def get_observation() -> dict:
-    """Returns a dict containing the following fields:
-        - scan: a list of length 100, where the i-th element is the distance 
-                to the nearest obstacle at an angle of -2.35 + i*0.047 from 
-                the car's heading. (increasing counterclockwise)
-        - pose_x: the x coordinate of the car's pose
-        - pose_y: the y coordinate of the car's pose
-        - pose_theta: the orientation of the car's pose
-        - linear_vel_x: the x component of the car's linear velocity
-        - linear_vel_y: the y component of the car's linear velocity
-        - ang_vel_z: the car's angular velocity
-    """
-    r = requests.get(f'{SERVER_URL}/', params={'team_token': TEAM_TOKEN})
+    r = requests.get(f'{SERVER_URL}/')
     if r.status_code == 403:
         raise Exception('Invalid team token')
 
-    return json.loads(r.content)
+    return pickle.loads(r.content)
 
 def send_command(speed, steer):
     data= {
@@ -40,15 +39,49 @@ def send_command(speed, steer):
 
     requests.post(f'{SERVER_URL}/', data=json.dumps(data))
 
+def render(o: Any, my_idx: int) -> None:
+    # So that our car has a unique color     
+    o['ego_idx'] = my_idx
+    renderer.update_obs(o)
+    renderer.dispatch_events()
+    renderer.on_draw()
+    renderer.flip()
 
-speed = 3
-steer_amplitude = 0.2
-while True:
-    o = get_observation()
-    s = o['scan']
-    l_sum = sum(s[30:40])
-    r_sum = sum(s[60:70])
-    steer = (-1 if l_sum > r_sum else 1) * steer_amplitude
-    send_command(speed, steer)
 
-    
+class MyController:
+    def __init__(self) -> None:
+        self.speed = 7
+        self.steer_amplitude = 0.2
+
+    def get_controls(self, x: float, y: float, theta: float, scan: List[float]) -> Tuple[float, float]:
+        """
+        x, y and theta are basically what you expect them to be.
+        scan is a list of 100 distances to obstacles in the car's FOV,
+        such that the first element is the distance at the angle -2.35 rad and the last at 2.35 rad.
+        The remaining elements are the distances at evenly spaced angles between those two.
+        """
+        
+        # Implement your own logic here, this is just an example that works reasonably well
+        l_sum = sum(scan[30:40])
+        r_sum = sum(scan[60:70])
+        steer = (-1 if l_sum > r_sum else 1) * self.steer_amplitude
+
+        return self.speed, steer
+        
+
+def main():
+    my_idx = requests.get(f'{SERVER_URL}/team_id', params={'team_token': TEAM_TOKEN}).json()
+    controller = MyController()
+
+    while True:
+        o = get_observation()
+
+        # you can disable rendering if you wish to, but it won't speed things up
+        # because physics is simulated on the server
+        render(o, my_idx)
+        my_x, my_y, my_theta, my_scan = o['poses_x'][my_idx], o['poses_y'][my_idx], o['poses_theta'][my_idx], o['scans'][my_idx]
+        speed, steer = controller.get_controls(my_x, my_y, my_theta, my_scan)
+        send_command(speed, steer)
+
+if __name__ == "__main__":
+    main()

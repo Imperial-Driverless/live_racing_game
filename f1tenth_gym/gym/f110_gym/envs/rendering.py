@@ -44,8 +44,8 @@ ZOOM_IN_FACTOR = 1.2
 ZOOM_OUT_FACTOR = 1/ZOOM_IN_FACTOR
 
 # vehicle shape constants
-CAR_LENGTH = 0.58
-CAR_WIDTH = 0.31
+CAR_LENGTH = 0.58*1.7
+CAR_WIDTH = 0.31*1.7
 
 class EnvRenderer(pyglet.window.Window):
     """
@@ -316,16 +316,11 @@ class EnvRenderer(pyglet.window.Window):
         if self.poses is None:
             self.cars = []
             for i in range(num_agents):
-                if i == self.ego_idx:
-                    vertices_np = get_vertices(np.array([0., 0., 0.]), CAR_LENGTH, CAR_WIDTH)
-                    vertices = list(vertices_np.flatten())
-                    car = self.batch.add(4, GL_QUADS, None, ('v2f', vertices), ('c3B', [172, 97, 185, 172, 97, 185, 172, 97, 185, 172, 97, 185]))
-                    self.cars.append(car)
-                else:
-                    vertices_np = get_vertices(np.array([0., 0., 0.]), CAR_LENGTH, CAR_WIDTH)
-                    vertices = list(vertices_np.flatten())
-                    car = self.batch.add(4, GL_QUADS, None, ('v2f', vertices), ('c3B', [99, 52, 94, 99, 52, 94, 99, 52, 94, 99, 52, 94]))
-                    self.cars.append(car)
+                color = [172, 97, 185] if i == self.ego_idx else [183, 193, 222]
+                vertices_np = get_vertices(np.array([0., 0., 0.]), CAR_LENGTH, CAR_WIDTH)
+                vertices = list(vertices_np.flatten())
+                car = self.batch.add(4, GL_QUADS, None, ('v2f', vertices), ('c3B', 4 * color))
+                self.cars.append(car)
 
         poses = np.stack((poses_x, poses_y, poses_theta)).T
         for j in range(poses.shape[0]):
@@ -334,4 +329,5 @@ class EnvRenderer(pyglet.window.Window):
             self.cars[j].vertices = vertices
         self.poses = poses
 
-        self.score_label.text = 'Lap Time: {laptime:.2f}, Ego Lap Count: {count:.0f}'.format(laptime=obs['lap_times'][0], count=obs['lap_counts'][obs['ego_idx']])
+        lap_countrs_str = '\n'.join(f"Team {i}: {v}" for i, v in enumerate(obs['lap_counts']))
+        self.score_label.text = f'Team number: {obs["ego_idx"]}.\nLap Counts:  \n{lap_countrs_str}'

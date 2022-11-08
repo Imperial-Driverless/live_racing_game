@@ -229,11 +229,11 @@ class F110Env(gym.Env):
             elif not closes[i] and self.near_starts[i]:
                 self.near_starts[i] = False
                 self.toggle_list[i] += 1
-            self.lap_counts[i] = self.toggle_list[i] // 2
-            if self.toggle_list[i] < 4:
-                self.lap_times[i] = self.current_time
+            if self.toggle_list[i] >= 2:
+                self.lap_counts[i] += 1
+                self.toggle_list[i] = 0
         
-        done = (self.collisions[self.ego_idx]) or np.all(self.toggle_list >= 4)
+        done = False
         
         return bool(done), self.toggle_list >= 4
 
@@ -270,6 +270,13 @@ class F110Env(gym.Env):
         obs = self.sim.step(action, dt)
         obs['lap_times'] = self.lap_times
         obs['lap_counts'] = self.lap_counts
+
+        for i, c in enumerate(obs['collisions']):
+            if c:
+                obs['collisions'][i] = 0
+                self.toggle_list[i] = 0
+                self.near_starts[i] = True
+
 
         F110Env.current_obs = obs
 

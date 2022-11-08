@@ -141,7 +141,7 @@ async def main():
                 last_step = now
 
                 f.seek(0)
-                json.dump(obs['lap_counts'].tolist(), f)
+                json.dump([int(x) for x in obs['lap_counts']], f)
                 f.truncate()
                 
                 await cache.set('obs', pickle.dumps(obs)) # type: ignore

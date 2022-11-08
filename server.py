@@ -137,7 +137,7 @@ async def main():
                 cmds_arr = [[c.steer, c.speed] for c in cmds]
 
                 now = time.time()
-                obs, step_reward, done, info = env.step(np.array(cmds_arr), max(now - last_step, 0.05)) # type: ignore - introducing time_step abuses the api
+                obs, step_reward, done, info = env.step(np.array(cmds_arr), 0.05) # type: ignore - introducing time_step abuses the api
                 last_step = now
 
                 f.seek(0)
